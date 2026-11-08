@@ -1,0 +1,22 @@
+MiniEQ — Volume, Balance, Bass, Mid and Treble for everything your Mac plays.
+Needs macOS 14.4 or later.
+
+INSTALL
+1. Drag MiniEQ onto the Applications folder in this window.
+2. Open MiniEQ from your Applications folder. A small knob icon appears in the menu bar.
+
+IF YOUR MAC SAYS IT CAN'T VERIFY MINIEQ
+MiniEQ isn't notarized by Apple, so the first launch is blocked. To open it anyway:
+1. Open System Settings → Privacy & Security.
+2. Scroll down and click "Open Anyway" next to the message about MiniEQ.
+3. Confirm with your password or Touch ID. You only have to do this once.
+
+ALLOW SYSTEM AUDIO
+MiniEQ asks to record system audio. Click Allow. It needs this to pass your sound
+through its knobs. Nothing is recorded or saved.
+
+USING IT
+- Drag a knob up or down (hold Option for fine moves), or scroll over it.
+- Double-click a knob to reset it.
+- Quit other equalizer apps (like eqMac) while using MiniEQ.
+- To turn MiniEQ off, click its menu bar icon and choose Quit. Your sound returns to normal right away.
