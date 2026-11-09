@@ -87,6 +87,27 @@ enum Tone {
 
 struct BiquadCoefficients {
     var b0 = 1.0, b1 = 0.0, b2 = 0.0, a1 = 0.0, a2 = 0.0
+
+    /// How much this filter boosts or cuts a given frequency, in dB (used by the tone curve).
+    func magnitudeDB(at hz: Double, sampleRate fs: Double) -> Double {
+        let w = 2 * Double.pi * hz / fs
+        let c1 = cos(w), s1 = sin(w), c2 = cos(2 * w), s2 = sin(2 * w)
+        let numReal = b0 + b1 * c1 + b2 * c2
+        let numImag = b1 * s1 + b2 * s2
+        let denReal = 1 + a1 * c1 + a2 * c2
+        let denImag = a1 * s1 + a2 * s2
+        let ratio = (numReal * numReal + numImag * numImag) / (denReal * denReal + denImag * denImag)
+        return 10 * log10(ratio)
+    }
+}
+
+extension Tone {
+    /// The three tone filters for a given knob setting — exactly what the audio thread uses.
+    static func filters(bass: Double, mid: Double, treble: Double, sampleRate fs: Double) -> [BiquadCoefficients] {
+        [lowShelf(hz: bassHz, gainDB: bass, sampleRate: fs),
+         bell(hz: midHz, q: midQ, gainDB: mid, sampleRate: fs),
+         highShelf(hz: trebleHz, gainDB: treble, sampleRate: fs)]
+    }
 }
 
 /// One biquad for left + right. Direct Form I in Double precision: stable at low

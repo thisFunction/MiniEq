@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MiniEQ — Five knobs for everything your Mac plays</title>
+<meta name="description" content="MiniEQ is a tiny free menu-bar app that adds Volume, Balance, Bass, Mid and Treble to all of your Mac's sound. No drivers, no account.">
+<meta name="theme-color" content="#0d0f14">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="MiniEQ — Five knobs for everything your Mac plays">
+<meta property="og:description" content="A tiny menu-bar app that adds Volume, Balance, Bass, Mid and Treble to all of your Mac's sound.">
+<meta property="og:image" content="https://thisfunction.github.io/MiniEq/social.png">
+<meta property="og:url" content="https://thisfunction.github.io/MiniEq/">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0d0f14;
+    --bg-raised: #141821;
+    --card: rgba(255, 255, 255, 0.035);
+    --card-border: rgba(255, 255, 255, 0.08);
+    --text: #eef0f5;
+    --text-2: #a7adbb;
+    --text-3: #707789;
+    --accent: #ff7a3d;
+    --accent-soft: rgba(255, 122, 61, 0.14);
+    --grad: linear-gradient(135deg, #ffb040 0%, #ff5e3a 100%);
+    --glow: rgba(255, 110, 60, 0.20);
+    --code-bg: #090b10;
+    --green: #32d74b;
+
+    --menubar-bg: rgba(255, 255, 255, 0.07);
+    --panel-bg: rgba(36, 38, 44, 0.86);
+    --panel-border: rgba(255, 255, 255, 0.12);
+    --panel-text: #f5f5f7;
+    --panel-text-2: rgba(235, 235, 245, 0.58);
+    --panel-line: rgba(255, 255, 255, 0.10);
+    --knob-track: rgba(255, 255, 255, 0.12);
+    --knob-top: #5c5c5e;
+    --knob-bottom: #38383a;
+    --knob-rim: rgba(255, 255, 255, 0.14);
+    --knob-pointer: rgba(255, 255, 255, 0.82);
+    --button-bg: rgba(255, 255, 255, 0.10);
+    --grid: rgba(255, 255, 255, 0.07);
+    --grid-strong: rgba(255, 255, 255, 0.18);
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      color-scheme: light;
+      --bg: #f5f5f7;
+      --bg-raised: #ffffff;
+      --card: #ffffff;
+      --card-border: rgba(0, 0, 0, 0.08);
+      --text: #1d1d1f;
+      --text-2: #55585f;
+      --text-3: #8a8d94;
+      --accent: #f2611f;
+      --accent-soft: rgba(242, 97, 31, 0.10);
+      --glow: rgba(255, 130, 70, 0.22);
+      --code-bg: #1b1d23;
+      --green: #28b440;
+
+      --menubar-bg: rgba(255, 255, 255, 0.6);
+      --panel-bg: rgba(248, 248, 250, 0.88);
+      --panel-border: rgba(0, 0, 0, 0.12);
+      --panel-text: #1d1d1f;
+      --panel-text-2: rgba(60, 60, 67, 0.62);
+      --panel-line: rgba(0, 0, 0, 0.10);
+      --knob-track: rgba(0, 0, 0, 0.12);
+      --knob-top: #ffffff;
+      --knob-bottom: #e0e0e2;
+      --knob-rim: rgba(0, 0, 0, 0.14);
+      --knob-pointer: rgba(0, 0, 0, 0.78);
+      --button-bg: rgba(0, 0, 0, 0.06);
+      --grid: rgba(0, 0, 0, 0.06);
+      --grid-strong: rgba(0, 0, 0, 0.18);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.55 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  a { color: inherit; }
+  img { display: block; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+  @media (max-width: 600px) { .wrap { padding: 0 16px; } }
+
+  /* ---------- Nav ---------- */
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 22px 0; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 650; font-size: 17px; text-decoration: none; }
+  .brand img { width: 28px; height: 28px; }
+  .nav-links { display: flex; gap: 22px; font-size: 14px; color: var(--text-2); }
+  .nav-links a { text-decoration: none; }
+  .nav-links a:hover { color: var(--text); }
+  @media (max-width: 600px) { .nav-links .optional { display: none; } }
+
+  /* ---------- Hero ---------- */
+  .hero { position: relative; padding: 40px 0 96px; }
+  .hero::before {
+    content: ""; position: absolute; inset: -120px 0 auto 0; height: 760px; z-index: -1;
+    background:
+      radial-gradient(520px 380px at 74% 34%, var(--glow), transparent 70%),
+      radial-gradient(420px 300px at 18% 10%, rgba(120, 140, 255, 0.07), transparent 70%);
+  }
+  .hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; }
+  @media (max-width: 960px) { .hero-grid { grid-template-columns: 1fr; gap: 48px; } }
+  .app-icon { width: 104px; height: 104px; margin-bottom: 26px; filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.35)); }
+  h1 { font-size: clamp(38px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.025em; margin: 0 0 20px; font-weight: 750; text-wrap: balance; }
+  h1 .hl { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .lede { font-size: 19px; color: var(--text-2); max-width: 520px; margin: 0 0 32px; text-wrap: pretty; }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 9px; height: 48px; padding: 0 22px;
+    border-radius: 12px; font-weight: 600; font-size: 16px; text-decoration: none; white-space: nowrap;
+    border: 1px solid var(--card-border); background: var(--card); transition: transform .15s ease, box-shadow .15s ease, background .15s;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn.primary { background: var(--grad); color: #fff; border: 0; box-shadow: 0 8px 24px rgba(255, 94, 58, 0.30); }
+  .btn.primary:hover { box-shadow: 0 12px 30px rgba(255, 94, 58, 0.38); }
+  .btn svg { width: 18px; height: 18px; }
+  .meta { font-size: 13.5px; color: var(--text-3); margin: 0; }
+
+  /* ---------- Demo: menu bar + panel ---------- */
+  .demo { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+  .menubar {
+    width: 100%; max-width: 470px; height: 30px; border-radius: 9px; margin-bottom: 8px;
+    background: var(--menubar-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--card-border);
+    display: flex; align-items: center; justify-content: flex-end; gap: 14px; padding: 0 12px;
+    font-size: 13px; color: var(--text-2);
+  }
+  .menubar .dots { display: flex; gap: 10px; margin-right: auto; }
+  .menubar .dots span { width: 34px; height: 6px; border-radius: 3px; background: var(--grid-strong); opacity: .6; }
+  .menubar .item { display: grid; place-items: center; width: 30px; height: 22px; border-radius: 6px; background: var(--button-bg); color: var(--text); }
+  .menubar .item svg { width: 17px; height: 17px; }
+
+  .panel {
+    width: 408px; max-width: 100%;
+    background: var(--panel-bg); color: var(--panel-text);
+    backdrop-filter: blur(30px) saturate(1.6); -webkit-backdrop-filter: blur(30px) saturate(1.6);
+    border: 0.5px solid var(--panel-border); border-radius: 14px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.18);
+    padding: 16px 14px 10px;
+    align-self: center; margin-left: auto; margin-right: auto;
+  }
+  @media (min-width: 961px) { .panel { margin-right: 6px; } .demo { align-items: flex-end; } .menubar { max-width: 470px; } }
+  .knobs { display: flex; align-items: flex-start; justify-content: center; gap: 8px; }
+  .knob { flex: 0 1 64px; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 5px; outline: none; }
+  .knob svg { width: 54px; max-width: 100%; aspect-ratio: 1; overflow: visible; cursor: ns-resize; touch-action: none; display: block; }
+  .knob:focus-visible svg { border-radius: 50%; box-shadow: 0 0 0 3px var(--accent-soft), 0 0 0 1.5px var(--accent); }
+  .knob .value {
+    font: 500 11px/1.2 ui-rounded, "SF Pro Rounded", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--panel-text);
+  }
+  .knob .title { font-size: 9px; font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase; color: var(--panel-text-2); }
+  .knobs .sep { width: 1px; height: 64px; background: var(--panel-line); margin: 8px 6px 0; flex: none; }
+  .panel hr { border: 0; border-top: 1px solid var(--panel-line); margin: 12px 0 9px; }
+  .panel-foot { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--panel-text-2); }
+  .panel-foot .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); animation: breathe 2.4s ease-in-out infinite; }
+  .panel-foot .quit { margin-left: auto; font: inherit; color: var(--panel-text); background: var(--button-bg); border: 0.5px solid var(--panel-border); border-radius: 5px; padding: 1px 8px; }
+  @keyframes breathe { 50% { opacity: .45; } }
+  @media (prefers-reduced-motion: reduce) { .panel-foot .dot { animation: none; } .btn { transition: none; } }
+
+  .curve-card {
+    width: 408px; max-width: 100%; margin: 14px auto 0; padding: 12px 14px 10px; border-radius: 14px;
+    background: var(--card); border: 1px solid var(--card-border);
+  }
+  @media (min-width: 961px) { .curve-card { margin-right: 6px; } }
+  .curve-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--text-3); margin-bottom: 6px; }
+  .curve-head b { color: var(--text-2); font-weight: 600; letter-spacing: .02em; }
+  #curve { width: 100%; height: auto; display: block; }
+  #curve text { font: 9.5px -apple-system, BlinkMacSystemFont, sans-serif; fill: var(--text-3); }
+  .hint { font-size: 13px; color: var(--text-3); margin: 12px auto 0; text-align: center; max-width: 408px; }
+  @media (min-width: 961px) { .hint { margin-right: 6px; } }
+  @media (min-width: 1100px) { .demo { zoom: 1.12; } }
+
+  /* ---------- Sections ---------- */
+  section { padding: 84px 0; }
+  section.alt { background: var(--bg-raised); border-top: 1px solid var(--card-border); border-bottom: 1px solid var(--card-border); }
+  .eyebrow { font-size: 13px; font-weight: 650; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin: 0 0 10px; }
+  h2 { font-size: clamp(28px, 3.6vw, 40px); line-height: 1.1; letter-spacing: -0.02em; margin: 0 0 14px; font-weight: 720; text-wrap: balance; }
+  .section-lede { color: var(--text-2); font-size: 18px; max-width: 640px; margin: 0 0 44px; }
+
+  .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 900px) { .features { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 600px) { .features { grid-template-columns: 1fr; } }
+  .feature { padding: 24px; border-radius: 16px; background: var(--card); border: 1px solid var(--card-border); }
+  .feature .ic { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); margin-bottom: 16px; }
+  .feature .ic svg { width: 22px; height: 22px; }
+  .feature h3 { margin: 0 0 6px; font-size: 17px; letter-spacing: -0.01em; }
+  .feature p { margin: 0; color: var(--text-2); font-size: 15px; }
+
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; counter-reset: step; }
+  @media (max-width: 900px) { .steps { grid-template-columns: 1fr; } }
+  .step { position: relative; padding: 26px 24px 24px; border-radius: 16px; background: var(--card); border: 1px solid var(--card-border); }
+  .step::before {
+    counter-increment: step; content: counter(step);
+    display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%;
+    background: var(--grad); color: #fff; font-weight: 700; font-size: 15px; margin-bottom: 14px;
+  }
+  .step h3 { margin: 0 0 6px; font-size: 17px; }
+  .step p { margin: 0; color: var(--text-2); font-size: 15px; }
+  .path { display: inline-block; font-size: 13.5px; padding: 1px 7px; border-radius: 6px; background: var(--accent-soft); color: var(--text); white-space: nowrap; }
+  .note { margin-top: 18px; font-size: 14px; color: var(--text-3); }
+
+  .flow { display: flex; align-items: stretch; gap: 10px; flex-wrap: wrap; margin-bottom: 40px; }
+  .node { flex: 1 1 180px; padding: 18px 18px 16px; border-radius: 14px; background: var(--card); border: 1px solid var(--card-border); }
+  .node.mid { flex: 1.6 1 260px; border-color: rgba(255, 122, 61, 0.45); background: linear-gradient(180deg, var(--accent-soft), transparent); }
+  .node small { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: var(--text-3); margin-bottom: 4px; }
+  .node strong { font-size: 16px; }
+  .node p { margin: 6px 0 0; font-size: 14px; color: var(--text-2); }
+  .chain { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .chain span { font-size: 12.5px; padding: 3px 9px; border-radius: 999px; background: var(--card); border: 1px solid var(--card-border); color: var(--text); }
+  .arrow { align-self: center; color: var(--text-3); font-size: 22px; flex: none; }
+  @media (max-width: 760px) { .arrow { width: 100%; text-align: center; transform: rotate(90deg); line-height: 1; } }
+
+  .specs { width: 100%; border-collapse: collapse; font-size: 15px; }
+  .specs th, .specs td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--card-border); vertical-align: top; }
+  .specs th { color: var(--text); font-weight: 600; width: 120px; }
+  .specs td { color: var(--text-2); }
+  .specs-wrap { border-radius: 14px; border: 1px solid var(--card-border); overflow: hidden; background: var(--card); }
+  .specs tr:last-child th, .specs tr:last-child td { border-bottom: 0; }
+
+  .code { position: relative; background: var(--code-bg); color: #e8eaf0; border-radius: 14px; padding: 20px 22px; border: 1px solid rgba(255, 255, 255, 0.08); overflow-x: auto; }
+  .code pre { margin: 0; font: 14.5px/1.7 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  .code .prompt { color: #ff9a5c; user-select: none; }
+  .copy { position: absolute; top: 12px; right: 12px; font: 600 12px -apple-system, sans-serif; color: #e8eaf0; background: rgba(255, 255, 255, 0.10); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 8px; padding: 5px 10px; cursor: pointer; }
+  .copy:hover { background: rgba(255, 255, 255, 0.16); }
+
+  .faq { display: grid; gap: 10px; max-width: 820px; }
+  details { border-radius: 14px; background: var(--card); border: 1px solid var(--card-border); padding: 0 20px; }
+  summary { cursor: pointer; list-style: none; padding: 17px 0; font-weight: 600; display: flex; justify-content: space-between; gap: 16px; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: "+"; color: var(--text-3); font-weight: 400; font-size: 20px; line-height: 1; transition: transform .2s; }
+  details[open] summary::after { transform: rotate(45deg); }
+  details p { margin: 0 0 18px; color: var(--text-2); }
+  code.inline { font: 13.5px ui-monospace, "SF Mono", Menlo, monospace; padding: 1px 6px; border-radius: 6px; background: var(--accent-soft); color: var(--text); }
+
+  .final { text-align: center; padding: 96px 0; }
+  .final .app-icon { margin: 0 auto 22px; width: 88px; height: 88px; }
+  .final .cta { justify-content: center; }
+
+  footer { border-top: 1px solid var(--card-border); padding: 28px 0 40px; color: var(--text-3); font-size: 14px; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: space-between; }
+  footer a { text-decoration: none; color: var(--text-2); }
+  footer a:hover { color: var(--text); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <nav>
+      <a class="brand" href="./"><img src="icon.png" alt="" width="28" height="28">MiniEQ</a>
+      <div class="nav-links">
+        <a class="optional" href="#features">Features</a>
+        <a class="optional" href="#install">Install</a>
+        <a class="optional" href="#faq">FAQ</a>
+        <a href="https://github.com/thisFunction/MiniEq">GitHub</a>
+      </div>
+    </nav>
+
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <img class="app-icon" src="icon.png" alt="MiniEQ app icon" width="104" height="104">
+        <h1>Five knobs for <span class="hl">everything</span> your Mac plays.</h1>
+        <p class="lede">MiniEQ is a tiny menu-bar app that adds Volume, Balance, Bass, Mid and Treble to all of your Mac's sound — music, movies, videos and games. No drivers, no account, nothing to configure.</p>
+        <div class="cta">
+          <a class="btn primary download-link" href="https://github.com/thisFunction/MiniEq/raw/main/dist/MiniEQ-1.0.dmg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>
+            Download for Mac
+          </a>
+          <a class="btn" href="https://github.com/thisFunction/MiniEq">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.09.68-.22.68-.49l-.01-1.7c-2.78.62-3.37-1.22-3.37-1.22-.45-1.19-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.57 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.04 1.03-2.76-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.3 9.3 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.64 1.03 2.76 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9l-.01 2.82c0 .27.18.59.69.49A10.26 10.26 0 0 0 22 12.25C22 6.58 17.52 2 12 2Z"/></svg>
+            View source
+          </a>
+        </div>
+        <p class="meta">Free · macOS 14.4 or later · Apple Silicon &amp; Intel · 850 KB</p>
+      </div>
+
+      <div class="demo" aria-label="Interactive preview of the MiniEQ panel">
+        <div class="menubar" aria-hidden="true">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <span class="item"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-linecap="round"><circle cx="9" cy="9" r="6.75" stroke-width="1.5"/><path d="M7.87 7.87 5.46 5.46" stroke-width="1.8"/></svg></span>
+          <span id="clock">Sun 9:41 AM</span>
+        </div>
+
+        <div class="panel">
+          <div class="knobs" id="knobs"></div>
+          <hr>
+          <div class="panel-foot">
+            <span class="dot" title="Sound is flowing through MiniEQ"></span>
+            <span>Speakers</span>
+            <span class="quit" aria-hidden="true">Quit</span>
+          </div>
+        </div>
+
+        <div class="curve-card">
+          <div class="curve-head"><b>TONE CURVE</b><span id="curve-readout"></span></div>
+          <svg id="curve" viewBox="0 0 380 132" role="img" aria-label="Frequency response of the current Bass, Mid and Treble settings"></svg>
+        </div>
+        <p class="hint">Try it: drag a knob up or down, scroll over it, or double-click to reset. The curve uses the same filter math as the app.</p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="features" class="alt">
+  <div class="wrap">
+    <p class="eyebrow">Why MiniEQ</p>
+    <h2>Just the knobs you actually reach for.</h2>
+    <p class="section-lede">Big equalizer apps bury the basics under presets and subscriptions. MiniEQ is five knobs and nothing else.</p>
+    <div class="features">
+      <div class="feature">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 12 7.5 7.5"/></svg></div>
+        <h3>Every app at once</h3>
+        <p>Music, Spotify, YouTube, movies and games all go through the same five knobs.</p>
+      </div>
+      <div class="feature">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 8.5h18M15.5 6.2h2.5"/></svg></div>
+        <h3>Lives in the menu bar</h3>
+        <p>One click opens the panel. There's no Dock icon and no window to keep track of.</p>
+      </div>
+      <div class="feature">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5.5c0 4.3 2.9 8 7 9.5 4.1-1.5 7-5.2 7-9.5V6l-7-3Z"/><path d="m9 12 2.2 2.2L15.5 10"/></svg></div>
+        <h3>No drivers, no password</h3>
+        <p>Built on Apple's own system-audio capture in macOS 14.4 and later. Nothing gets installed into the system.</p>
+      </div>
+      <div class="feature">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></div>
+        <h3>Volume where macOS has none</h3>
+        <p>Many HDMI and DisplayPort monitors ignore the volume keys. MiniEQ's Volume knob works on every output.</p>
+      </div>
+      <div class="feature">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4.5" height="6.5" rx="1.6"/><rect x="16.5" y="14" width="4.5" height="6.5" rx="1.6"/></svg></div>
+        <h3>Follows your output</h3>
+        <p>Plug in headphones, connect AirPods or switch speakers, and MiniEQ moves with you automatically.</p>
+      </div>
+      <div class="feature">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v8"/><path d="M6.6 6.6a7.5 7.5 0 1 0 10.8 0"/></svg></div>
+        <h3>Quit means untouched</h3>
+        <p>Quit MiniEQ and your Mac's sound goes straight back to normal. Nothing is ever recorded or saved.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="install">
+  <div class="wrap">
+    <p class="eyebrow">Install</p>
+    <h2>Up and running in a minute.</h2>
+    <p class="section-lede">MiniEQ needs macOS 14.4 (Sonoma) or later and runs on both Apple Silicon and Intel Macs.</p>
+    <div class="steps">
+      <div class="step">
+        <h3>Download</h3>
+        <p>Get <a class="download-link" href="https://github.com/thisFunction/MiniEq/raw/main/dist/MiniEQ-1.0.dmg">MiniEQ-1.0.dmg</a> and open it.</p>
+      </div>
+      <div class="step">
+        <h3>Drag to Applications</h3>
+        <p>Drag MiniEQ onto the Applications shortcut in the window, then open it from your Applications folder.</p>
+      </div>
+      <div class="step">
+        <h3>Approve it once</h3>
+        <p>If macOS blocks the first launch, go to <span class="path">System Settings → Privacy &amp; Security</span> and click <b>Open Anyway</b>. When MiniEQ asks for system audio, click <b>Allow</b>.</p>
+      </div>
+    </div>
+    <p class="note">macOS blocks the first launch because MiniEQ isn't notarized by Apple. MiniEQ asks to “record” system audio because that's how it passes your sound through the knobs — the audio never leaves your Mac and nothing is saved.</p>
+  </div>
+</section>
+
+<section id="how" class="alt">
+  <div class="wrap">
+    <p class="eyebrow">How it works</p>
+    <h2>Real-time tone controls, done the macOS way.</h2>
+    <p class="section-lede">MiniEQ uses the system-audio tap Apple added in macOS 14.4, so it needs no audio driver or kernel extension.</p>
+    <div class="flow">
+      <div class="node"><small>Source</small><strong>Every app</strong><p>Whatever your Mac is playing.</p></div>
+      <div class="arrow" aria-hidden="true">→</div>
+      <div class="node"><small>Capture</small><strong>System audio tap</strong><p>macOS hands the sound to MiniEQ and mutes the original.</p></div>
+      <div class="arrow" aria-hidden="true">→</div>
+      <div class="node mid"><small>MiniEQ</small><strong>Five knobs, in real time</strong>
+        <div class="chain"><span>Bass</span><span>Mid</span><span>Treble</span><span>Balance</span><span>Volume</span><span>Soft limiter</span></div>
+      </div>
+      <div class="arrow" aria-hidden="true">→</div>
+      <div class="node"><small>Output</small><strong>Your speakers</strong><p>Headphones, AirPods, USB, HDMI or built-in.</p></div>
+    </div>
+    <div class="specs-wrap">
+      <table class="specs">
+        <tr><th>Bass</th><td>Low shelf at 120 Hz, ±12 dB</td></tr>
+        <tr><th>Mid</th><td>Wide bell at 1 kHz (Q 0.7), ±12 dB</td></tr>
+        <tr><th>Treble</th><td>High shelf at 8 kHz, ±12 dB</td></tr>
+        <tr><th>Balance</th><td>Fades the opposite side; center leaves both at full level</td></tr>
+        <tr><th>Volume</th><td>0–100% with an audio taper, applied after the EQ — works even on outputs macOS can't adjust</td></tr>
+        <tr><th>Limiter</th><td>Transparent below −0.4 dBFS, then rounds off peaks so big boosts don't clip harshly</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="build">
+  <div class="wrap">
+    <p class="eyebrow">Build it yourself</p>
+    <h2>One command from source.</h2>
+    <p class="section-lede">MiniEQ is about a thousand lines of Swift with no dependencies. All you need is Apple's command-line tools (<code class="inline">xcode-select --install</code>).</p>
+    <div class="code">
+      <button class="copy" type="button" data-copy="git clone https://github.com/thisFunction/MiniEq.git&#10;cd MiniEq&#10;./build.sh install">Copy</button>
+<pre><span class="prompt">$ </span>git clone https://github.com/thisFunction/MiniEq.git
+<span class="prompt">$ </span>cd MiniEq
+<span class="prompt">$ </span>./build.sh install</pre>
+    </div>
+    <p class="note">Run <code class="inline">./build.sh dmg</code> to make your own shareable disk image.</p>
+  </div>
+</section>
+
+<section id="faq" class="alt">
+  <div class="wrap">
+    <p class="eyebrow">FAQ</p>
+    <h2>Good to know.</h2>
+    <div class="faq">
+      <details>
+        <summary>Why does macOS say it can't verify MiniEQ?</summary>
+        <p>MiniEQ isn't notarized by Apple, so macOS blocks the first launch. Open System Settings → Privacy &amp; Security, scroll down and click Open Anyway next to the message about MiniEQ. You only have to do this once.</p>
+      </details>
+      <details>
+        <summary>Why does it ask to record system audio?</summary>
+        <p>That's the permission macOS uses for any app that processes the sound other apps play. MiniEQ runs your audio through its knobs and straight back out to your speakers. Nothing is recorded, saved or sent anywhere.</p>
+      </details>
+      <details>
+        <summary>Does it work with AirPods, USB speakers and HDMI monitors?</summary>
+        <p>Yes. MiniEQ uses whatever output is selected in Sound settings and follows you when you switch. Its Volume knob also works on monitors and TVs where the Mac's volume keys don't.</p>
+      </details>
+      <details>
+        <summary>Can I use it alongside eqMac or another equalizer?</summary>
+        <p>It's best to quit other equalizer apps while MiniEQ is running, so the effects don't stack on top of each other.</p>
+      </details>
+      <details>
+        <summary>People on my video call hear an echo.</summary>
+        <p>Echo cancellation in some calling apps can't account for re-routed audio. Quit MiniEQ for the call and open it again afterward.</p>
+      </details>
+      <details>
+        <summary>How do I turn it off or uninstall it?</summary>
+        <p>Click the knob icon in the menu bar and choose Quit; your sound returns to normal immediately. To uninstall, quit MiniEQ and drag it from Applications to the Trash. To start it automatically, add it in System Settings → General → Login Items.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section class="final">
+  <div class="wrap">
+    <img class="app-icon" src="icon.png" alt="" width="88" height="88">
+    <h2>Make your Mac sound the way you like.</h2>
+    <p class="section-lede" style="margin: 0 auto 30px;">Free, tiny, and gone the moment you quit it.</p>
+    <div class="cta">
+      <a class="btn primary download-link" href="https://github.com/thisFunction/MiniEq/raw/main/dist/MiniEQ-1.0.dmg">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>
+        Download for Mac
+      </a>
+    </div>
+    <p class="meta">macOS 14.4 or later · Apple Silicon &amp; Intel</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>MiniEQ — five knobs for your Mac.</span>
+    <span><a href="https://github.com/thisFunction/MiniEq">Source on GitHub</a> · Made by <a href="https://github.com/thisFunction">thisFunction</a></span>
+  </div>
+</footer>
+
+<script>
+(() => {
+  // ---------- Knob specs (same ranges, defaults and labels as the app) ----------
+  const fmtDB = v => Math.abs(v) < 0.05 ? "0 dB" : (v > 0 ? "+" : "-") + Math.abs(v).toFixed(1) + " dB";
+  const specs = [
+    { key: "volume",  title: "Volume",  min: 0,   max: 1,  def: 1, bipolar: false, step: 0.05, start: 0.8,
+      fmt: v => Math.round(v * 100) + "%" },
+    { key: "balance", title: "Balance", min: -1,  max: 1,  def: 0, bipolar: true,  step: 0.1,  start: 0,
+      fmt: v => { const a = Math.round(Math.abs(v) * 100); return a === 0 ? "Center" : (v < 0 ? "L " : "R ") + a; } },
+    "sep",
+    { key: "bass",    title: "Bass",    min: -12, max: 12, def: 0, bipolar: true,  step: 1, start: 4,    fmt: fmtDB },
+    { key: "mid",     title: "Mid",     min: -12, max: 12, def: 0, bipolar: true,  step: 1, start: -1.5, fmt: fmtDB },
+    { key: "treble",  title: "Treble",  min: -12, max: 12, def: 0, bipolar: true,  step: 1, start: 2.5,  fmt: fmtDB },
+  ];
+  const state = {};
+  const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const el = (tag, attrs = {}, parent) => {
+    const n = document.createElementNS(SVGNS, tag);
+    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+    if (parent) parent.appendChild(n);
+    return n;
+  };
+
+  // ---------- Knob drawing (mirrors KnobFace in the app) ----------
+  const S = 54, C = 27, LINE = S * 0.075, R = C - LINE / 2;
+  const rad = d => d * Math.PI / 180;
+  function arcPath(a0, a1) {
+    const x0 = C + R * Math.cos(rad(a0)), y0 = C + R * Math.sin(rad(a0));
+    const x1 = C + R * Math.cos(rad(a1)), y1 = C + R * Math.sin(rad(a1));
+    return `M ${x0.toFixed(3)} ${y0.toFixed(3)} A ${R} ${R} 0 ${a1 - a0 > 180 ? 1 : 0} 1 ${x1.toFixed(3)} ${y1.toFixed(3)}`;
+  }
+
+  const container = document.getElementById("knobs");
+  const svgDefs = (() => {
+    const s = el("svg", { width: 0, height: 0, style: "position:absolute" }, document.body);
+    const defs = el("defs", {}, s);
+    const g = el("linearGradient", { id: "cap", x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
+    el("stop", { offset: "0", style: "stop-color: var(--knob-top)" }, g);
+    el("stop", { offset: "1", style: "stop-color: var(--knob-bottom)" }, g);
+    const f = el("filter", { id: "capShadow", x: "-30%", y: "-30%", width: "160%", height: "160%" }, defs);
+    el("feDropShadow", { dx: 0, dy: 1, stdDeviation: 1.1, "flood-color": "#000", "flood-opacity": 0.3 }, f);
+    return s;
+  })();
+
+  for (const spec of specs) {
+    if (spec === "sep") { const d = document.createElement("div"); d.className = "sep"; container.appendChild(d); continue; }
+    const wrap = document.createElement("div");
+    wrap.className = "knob";
+    wrap.tabIndex = 0;
+    wrap.setAttribute("role", "slider");
+    wrap.setAttribute("aria-label", spec.title);
+    wrap.setAttribute("aria-valuemin", spec.min);
+    wrap.setAttribute("aria-valuemax", spec.max);
+    const svg = el("svg", { viewBox: `0 0 ${S} ${S}`, "aria-hidden": "true" }, wrap);
+    el("path", { d: arcPath(135, 405), fill: "none", style: "stroke: var(--knob-track)", "stroke-width": LINE, "stroke-linecap": "round" }, svg);
+    const valueArc = el("path", { d: "", fill: "none", style: "stroke: var(--accent)", "stroke-width": LINE, "stroke-linecap": "round" }, svg);
+    el("circle", { cx: C, cy: C, r: C - LINE * 2.1, fill: "url(#cap)", filter: "url(#capShadow)" }, svg);
+    el("circle", { cx: C, cy: C, r: C - LINE * 2.1 - 0.25, fill: "none", style: "stroke: var(--knob-rim)", "stroke-width": 0.5 }, svg);
+    const pw = Math.max(2, LINE * 0.75), ph = S * 0.16;
+    const pointer = el("rect", { x: C - pw / 2, y: C - S * 0.2 - ph / 2, width: pw, height: ph, rx: pw / 2, style: "fill: var(--knob-pointer)" }, svg);
+    const valueText = document.createElement("div"); valueText.className = "value"; wrap.appendChild(valueText);
+    const titleText = document.createElement("div"); titleText.className = "title"; titleText.textContent = spec.title; wrap.appendChild(titleText);
+    container.appendChild(wrap);
+
+    const span = spec.max - spec.min;
+    const render = () => {
+      const v = state[spec.key];
+      const f = Math.min(1, Math.max(0, (v - spec.min) / span));
+      const origin = spec.bipolar ? 0.5 : 0;
+      const a0 = 135 + 270 * Math.min(origin, f), a1 = 135 + 270 * Math.max(origin, f);
+      valueArc.setAttribute("d", a1 - a0 > 0.15 ? arcPath(a0, a1) : "");
+      pointer.setAttribute("transform", `rotate(${(-135 + 270 * f).toFixed(2)} ${C} ${C})`);
+      valueText.textContent = spec.fmt(v);
+      wrap.setAttribute("aria-valuenow", v.toFixed(2));
+      wrap.setAttribute("aria-valuetext", spec.fmt(v));
+    };
+    const set = (proposed, detent = false) => {
+      let v = Math.min(spec.max, Math.max(spec.min, proposed));
+      if (detent && Math.abs(v - spec.def) < span * 0.02) v = spec.def;   // same gentle detent as the app
+      if (v !== state[spec.key]) { state[spec.key] = v; render(); drawCurve(); }
+    };
+    state[spec.key] = spec.start;
+    render();
+
+    // Drag up/down (Option/Alt for fine control), like the app.
+    let dragging = false, startValue = 0, travel = 0, lastY = 0;
+    svg.addEventListener("pointerdown", e => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      wrap.focus({ preventScroll: true });
+      svg.setPointerCapture(e.pointerId);
+      dragging = true; startValue = state[spec.key]; travel = 0; lastY = e.clientY;
+    });
+    svg.addEventListener("pointermove", e => {
+      if (!dragging) return;
+      const dy = e.clientY - lastY; lastY = e.clientY;
+      travel -= dy * (e.altKey ? 0.2 : 1);
+      set(startValue + travel * span / 160, true);
+    });
+    const stop = () => { dragging = false; };
+    svg.addEventListener("pointerup", stop);
+    svg.addEventListener("pointercancel", stop);
+    svg.addEventListener("dblclick", () => set(spec.def));
+    svg.addEventListener("wheel", e => {
+      e.preventDefault();
+      let d = isMac ? e.deltaY : -e.deltaY;      // two-finger swipe up turns the knob up
+      if (e.deltaMode === 1) d *= 16;
+      set(state[spec.key] + d * span / 300 * (e.altKey ? 0.2 : 1));
+    }, { passive: false });
+    wrap.addEventListener("keydown", e => {
+      const k = e.key;
+      if (k === "ArrowUp" || k === "ArrowRight") set(state[spec.key] + spec.step);
+      else if (k === "ArrowDown" || k === "ArrowLeft") set(state[spec.key] - spec.step);
+      else if (k === "Home") set(spec.min);
+      else if (k === "End") set(spec.max);
+      else if (k === "Enter" || k === " " || k === "0") set(spec.def);
+      else return;
+      e.preventDefault();
+    });
+  }
+
+  // ---------- Tone curve (RBJ biquads — the same formulas as Sources/DSP.swift) ----------
+  const FS = 48000;
+  function lowShelf(hz, g) {
+    const a = 10 ** (g / 40), w0 = 2 * Math.PI * hz / FS, cw = Math.cos(w0), k = 2 * Math.sqrt(a) * (Math.sin(w0) / 2 * Math.SQRT2);
+    const a0 = (a + 1) + (a - 1) * cw + k;
+    return [a * ((a + 1) - (a - 1) * cw + k) / a0, 2 * a * ((a - 1) - (a + 1) * cw) / a0, a * ((a + 1) - (a - 1) * cw - k) / a0,
+            -2 * ((a - 1) + (a + 1) * cw) / a0, ((a + 1) + (a - 1) * cw - k) / a0];
+  }
+  function highShelf(hz, g) {
+    const a = 10 ** (g / 40), w0 = 2 * Math.PI * hz / FS, cw = Math.cos(w0), k = 2 * Math.sqrt(a) * (Math.sin(w0) / 2 * Math.SQRT2);
+    const a0 = (a + 1) - (a - 1) * cw + k;
+    return [a * ((a + 1) + (a - 1) * cw + k) / a0, -2 * a * ((a - 1) + (a + 1) * cw) / a0, a * ((a + 1) + (a - 1) * cw - k) / a0,
+            2 * ((a - 1) - (a + 1) * cw) / a0, ((a + 1) - (a - 1) * cw - k) / a0];
+  }
+  function bell(hz, q, g) {
+    const a = 10 ** (g / 40), w0 = 2 * Math.PI * hz / FS, cw = Math.cos(w0), al = Math.sin(w0) / (2 * q), a0 = 1 + al / a;
+    return [(1 + al * a) / a0, -2 * cw / a0, (1 - al * a) / a0, -2 * cw / a0, (1 - al / a) / a0];
+  }
+  function magDB([b0, b1, b2, a1, a2], f) {
+    const w = 2 * Math.PI * f / FS, c1 = Math.cos(w), s1 = Math.sin(w), c2 = Math.cos(2 * w), s2 = Math.sin(2 * w);
+    const nr = b0 + b1 * c1 + b2 * c2, ni = b1 * s1 + b2 * s2;
+    const dr = 1 + a1 * c1 + a2 * c2, di = a1 * s1 + a2 * s2;
+    return 10 * Math.log10((nr * nr + ni * ni) / (dr * dr + di * di));
+  }
+  window.MiniEQCurve = { lowShelf, highShelf, bell, magDB };   // exposed for testing
+
+  const curve = document.getElementById("curve");
+  const W = 380, H = 132, PADL = 26, PADR = 6, PADT = 6, PADB = 18, DBMAX = 15;
+  const fMin = 20, fMax = 20000;
+  const xOf = f => PADL + (Math.log10(f / fMin) / Math.log10(fMax / fMin)) * (W - PADL - PADR);
+  const yOf = db => PADT + (1 - (db + DBMAX) / (2 * DBMAX)) * (H - PADT - PADB);
+  // grid
+  for (const f of [50, 100, 200, 500, 1000, 2000, 5000, 10000]) {
+    el("line", { x1: xOf(f), x2: xOf(f), y1: PADT, y2: H - PADB, style: "stroke: var(--grid)", "stroke-width": 1 }, curve);
+  }
+  for (const db of [-12, -6, 6, 12]) {
+    el("line", { x1: PADL, x2: W - PADR, y1: yOf(db), y2: yOf(db), style: "stroke: var(--grid)", "stroke-width": 1 }, curve);
+    const t = el("text", { x: PADL - 5, y: yOf(db) + 3, "text-anchor": "end" }, curve); t.textContent = (db > 0 ? "+" : "") + db;
+  }
+  el("line", { x1: PADL, x2: W - PADR, y1: yOf(0), y2: yOf(0), style: "stroke: var(--grid-strong)", "stroke-width": 1 }, curve);
+  { const t = el("text", { x: PADL - 5, y: yOf(0) + 3, "text-anchor": "end" }, curve); t.textContent = "0"; }
+  for (const [f, label] of [[100, "100"], [1000, "1k"], [10000, "10k"]]) {
+    const t = el("text", { x: xOf(f), y: H - 5, "text-anchor": "middle" }, curve); t.textContent = label;
+  }
+  const grad = el("linearGradient", { id: "curveFill", x1: 0, y1: 0, x2: 0, y2: 1 }, el("defs", {}, curve));
+  el("stop", { offset: "0", "stop-color": "#ff7a3d", "stop-opacity": 0.32 }, grad);
+  el("stop", { offset: "1", "stop-color": "#ff7a3d", "stop-opacity": 0.02 }, grad);
+  const fill = el("path", { fill: "url(#curveFill)" }, curve);
+  const line = el("path", { fill: "none", style: "stroke: var(--accent)", "stroke-width": 2, "stroke-linejoin": "round" }, curve);
+  const dots = ["bass", "mid", "treble"].map(() => el("circle", { r: 3.2, style: "fill: var(--accent); stroke: var(--bg)", "stroke-width": 1.5 }, curve));
+  const readout = document.getElementById("curve-readout");
+
+  function drawCurve() {
+    const filters = [lowShelf(120, state.bass), bell(1000, 0.7, state.mid), highShelf(8000, state.treble)];
+    const total = f => filters.reduce((s, c) => s + magDB(c, f), 0);
+    let d = "";
+    const N = 160;
+    for (let i = 0; i <= N; i++) {
+      const f = fMin * (fMax / fMin) ** (i / N);
+      const y = Math.min(H - PADB, Math.max(PADT, yOf(total(f))));
+      d += (i ? " L " : "M ") + xOf(f).toFixed(2) + " " + y.toFixed(2);
+    }
+    line.setAttribute("d", d);
+    fill.setAttribute("d", `${d} L ${xOf(fMax).toFixed(2)} ${yOf(0).toFixed(2)} L ${xOf(fMin).toFixed(2)} ${yOf(0).toFixed(2)} Z`);
+    [[120, 0], [1000, 1], [8000, 2]].forEach(([f, i]) => {
+      dots[i].setAttribute("cx", xOf(f).toFixed(2));
+      dots[i].setAttribute("cy", Math.min(H - PADB, Math.max(PADT, yOf(total(f)))).toFixed(2));
+    });
+    readout.textContent = `Volume ${specs[0].fmt(state.volume)} · ${specs[1].fmt(state.balance)}`;
+  }
+  drawCurve();
+
+  // ---------- Little touches ----------
+  const clock = document.getElementById("clock");
+  const tick = () => {
+    const now = new Date();
+    clock.textContent = now.toLocaleDateString(undefined, { weekday: "short" }) + " " +
+      now.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  };
+  tick(); setInterval(tick, 15000);
+
+  document.querySelectorAll(".copy").forEach(btn => btn.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(btn.dataset.copy); btn.textContent = "Copied"; }
+    catch { btn.textContent = "Select & copy"; }
+    setTimeout(() => (btn.textContent = "Copy"), 1600);
+  }));
+})();
+</script>
+</body>
+</html>

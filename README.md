@@ -1,6 +1,10 @@
+<img src="docs/icon.png" width="96" alt="MiniEQ icon">
+
 # MiniEQ
 
 A tiny menu-bar equalizer for everything your Mac plays: **Volume, Balance, Bass, Mid, Treble.**
+
+**[Website](https://thisfunction.github.io/MiniEq/)** · **[Download MiniEQ-1.0.dmg](https://github.com/thisFunction/MiniEq/raw/main/dist/MiniEQ-1.0.dmg)** · macOS 14.4+, Apple Silicon and Intel
 
 ## Using it
 
