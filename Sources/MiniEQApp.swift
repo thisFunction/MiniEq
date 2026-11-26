@@ -9,8 +9,7 @@ struct MiniEQApp: App {
         MenuBarExtra {
             ContentView(model: appDelegate.model)
         } label: {
-            Image(nsImage: MenuBarIcon.image)
-                .accessibilityLabel("MiniEQ")
+            MenuBarLabel(model: appDelegate.model)
         }
         .menuBarExtraStyle(.window)
     }
@@ -124,25 +123,51 @@ final class AppModel: ObservableObject {
     }
 }
 
-/// A small knob drawn as a template image, so it matches the menu bar in light and dark mode.
+/// The menu bar icon follows the Volume knob: its arc fills and its pointer turns as you
+/// change MiniEQ's volume (empty and pointing bottom-left at 0 %, full at 100 %).
+struct MenuBarLabel: View {
+    @ObservedObject var model: AppModel
+
+    var body: some View {
+        Image(nsImage: MenuBarIcon.image(volume: model.volume))
+            .accessibilityLabel("MiniEQ, volume \(KnobSpec.volume.format(model.volume))")
+    }
+}
+
+/// A tiny knob drawn as a template image, so it matches the menu bar in light and dark mode.
 enum MenuBarIcon {
-    static let image: NSImage = {
-        let image = NSImage(size: NSSize(width: 18, height: 18), flipped: false) { rect in
-            NSColor.black.set()
-            let ring = NSBezierPath(ovalIn: rect.insetBy(dx: 2.25, dy: 2.25))
-            ring.lineWidth = 1.5
-            ring.stroke()
+    private static var cache: [Int: NSImage] = [:]
+
+    static func image(volume: Double) -> NSImage {
+        let step = Int((min(max(volume, 0), 1) * 50).rounded())   // 2 % steps are plenty at this size
+        if let cached = cache[step] { return cached }
+        let fraction = CGFloat(step) / 50
+        // Flipped (y-down) drawing, so angles grow clockwise; the knob's arc runs 135° to 405°.
+        let image = NSImage(size: NSSize(width: 18, height: 18), flipped: true) { rect in
             let center = NSPoint(x: rect.midX, y: rect.midY)
-            let angle = CGFloat.pi * 0.75   // pointing up-left, like a knob at "10 o'clock"
+            func arc(to end: CGFloat, alpha: CGFloat) {
+                guard end - 135 > 0.5 else { return }
+                let path = NSBezierPath()
+                path.appendArc(withCenter: center, radius: 6.9, startAngle: 135, endAngle: end, clockwise: false)
+                path.lineWidth = 1.7
+                path.lineCapStyle = .round
+                NSColor.black.withAlphaComponent(alpha).setStroke()
+                path.stroke()
+            }
+            arc(to: 405, alpha: 0.32)                    // faint track
+            arc(to: 135 + 270 * fraction, alpha: 1)      // current volume
+            let angle = (135 + 270 * fraction) * .pi / 180
             let pointer = NSBezierPath()
+            pointer.move(to: NSPoint(x: center.x + cos(angle) * 1.0, y: center.y + sin(angle) * 1.0))
+            pointer.line(to: NSPoint(x: center.x + cos(angle) * 4.3, y: center.y + sin(angle) * 4.3))
             pointer.lineWidth = 1.8
             pointer.lineCapStyle = .round
-            pointer.move(to: NSPoint(x: center.x + cos(angle) * 1.6, y: center.y + sin(angle) * 1.6))
-            pointer.line(to: NSPoint(x: center.x + cos(angle) * 5.0, y: center.y + sin(angle) * 5.0))
+            NSColor.black.setStroke()
             pointer.stroke()
             return true
         }
         image.isTemplate = true
+        cache[step] = image
         return image
-    }()
+    }
 }
