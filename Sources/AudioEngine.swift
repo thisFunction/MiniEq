@@ -47,12 +47,15 @@ final class AudioEngine {
 
     // MARK: - Called from the main thread
 
-    func setKnobs(volume: Double, balance: Double, bass: Double, mid: Double, treble: Double) {
+    func setKnobs(volume: Double, balance: Double, bass: Double, lowMid: Double, mid: Double,
+                  highMid: Double, treble: Double) {
         let v = shared.values
         v[SharedParams.volume] = Float(volume)
         v[SharedParams.balance] = Float(balance)
         v[SharedParams.bass] = Float(bass)
+        v[SharedParams.lowMid] = Float(lowMid)
         v[SharedParams.mid] = Float(mid)
+        v[SharedParams.highMid] = Float(highMid)
         v[SharedParams.treble] = Float(treble)
     }
 

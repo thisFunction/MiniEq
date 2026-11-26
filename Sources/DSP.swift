@@ -6,7 +6,7 @@ import CoreAudio
 /// on Apple hardware. The UI writes the knob slots; the audio thread only reads them
 /// (and writes the level meter + callback counter, which only the UI reads).
 final class SharedParams {
-    static let volume = 0, balance = 1, bass = 2, mid = 3, treble = 4, level = 5
+    static let volume = 0, balance = 1, bass = 2, mid = 3, treble = 4, level = 5, lowMid = 6, highMid = 7
     private static let slotCount = 8
 
     let values: UnsafeMutablePointer<Float>
@@ -32,13 +32,16 @@ final class SharedParams {
 
 // MARK: - Tone controls
 
-/// Where each knob acts. Tweak these to taste.
+/// Where each band acts. Tweak these to taste.
 enum Tone {
-    static let bassHz = 120.0      // low shelf
-    static let midHz = 1_000.0     // bell
-    static let midQ = 0.7          // wide bell (~2 octaves)
-    static let trebleHz = 8_000.0  // high shelf
-    static let maxDB = 12.0        // each tone knob goes ±12 dB
+    static let bassHz = 120.0       // low shelf (knob + curve)
+    static let lowMidHz = 300.0     // bell (tone curve only)
+    static let midHz = 1_000.0      // bell (knob + curve)
+    static let highMidHz = 3_000.0  // bell (tone curve only)
+    static let trebleHz = 8_000.0   // high shelf (knob + curve)
+    static let midQ = 0.7           // Mid: wide bell (~2 octaves)
+    static let detailQ = 1.0        // Low mid / High mid: narrower bells (~1.4 octaves)
+    static let maxDB = 12.0         // every band goes ±12 dB
 
     // RBJ "Audio EQ Cookbook" biquads, normalized so a0 == 1. Shelves use slope S = 1.
 
@@ -102,10 +105,13 @@ struct BiquadCoefficients {
 }
 
 extension Tone {
-    /// The three tone filters for a given knob setting — exactly what the audio thread uses.
-    static func filters(bass: Double, mid: Double, treble: Double, sampleRate fs: Double) -> [BiquadCoefficients] {
+    /// The five tone filters for a given setting — exactly what the audio thread uses.
+    static func filters(bass: Double, lowMid: Double, mid: Double, highMid: Double, treble: Double,
+                        sampleRate fs: Double) -> [BiquadCoefficients] {
         [lowShelf(hz: bassHz, gainDB: bass, sampleRate: fs),
+         bell(hz: lowMidHz, q: detailQ, gainDB: lowMid, sampleRate: fs),
          bell(hz: midHz, q: midQ, gainDB: mid, sampleRate: fs),
+         bell(hz: highMidHz, q: detailQ, gainDB: highMid, sampleRate: fs),
          highShelf(hz: trebleHz, gainDB: treble, sampleRate: fs)]
     }
 }
@@ -178,8 +184,9 @@ final class Renderer {
     private let left: (buffer: Int, channel: Int)
     private let right: (buffer: Int, channel: Int)
 
-    private var bass = StereoBiquad(), mid = StereoBiquad(), treble = StereoBiquad()
-    private var bassDB: Double, midDB: Double, trebleDB: Double
+    private var bass = StereoBiquad(), lowMid = StereoBiquad(), mid = StereoBiquad()
+    private var highMid = StereoBiquad(), treble = StereoBiquad()
+    private var bassDB: Double, lowMidDB: Double, midDB: Double, highMidDB: Double, trebleDB: Double
     private var gainL: Float = 0, gainR: Float = 0   // start silent → ~15 ms fade-in, no pop
     private let gainSmoothing: Float
 
@@ -187,7 +194,9 @@ final class Renderer {
          left: (buffer: Int, channel: Int), right: (buffer: Int, channel: Int)) {
         let values = shared.values
         let startBass = Renderer.clampDB(values[SharedParams.bass])
+        let startLowMid = Renderer.clampDB(values[SharedParams.lowMid])
         let startMid = Renderer.clampDB(values[SharedParams.mid])
+        let startHighMid = Renderer.clampDB(values[SharedParams.highMid])
         let startTreble = Renderer.clampDB(values[SharedParams.treble])
         self.shared = shared
         self.knobs = values
@@ -197,10 +206,14 @@ final class Renderer {
         self.right = right
         self.gainSmoothing = Float(1 - exp(-1 / (sampleRate * 0.015)))
         self.bassDB = startBass
+        self.lowMidDB = startLowMid
         self.midDB = startMid
+        self.highMidDB = startHighMid
         self.trebleDB = startTreble
         bass.c = Tone.lowShelf(hz: Tone.bassHz, gainDB: startBass, sampleRate: sampleRate)
+        lowMid.c = Tone.bell(hz: Tone.lowMidHz, q: Tone.detailQ, gainDB: startLowMid, sampleRate: sampleRate)
         mid.c = Tone.bell(hz: Tone.midHz, q: Tone.midQ, gainDB: startMid, sampleRate: sampleRate)
+        highMid.c = Tone.bell(hz: Tone.highMidHz, q: Tone.detailQ, gainDB: startHighMid, sampleRate: sampleRate)
         treble.c = Tone.highShelf(hz: Tone.trebleHz, gainDB: startTreble, sampleRate: sampleRate)
     }
 
@@ -246,7 +259,7 @@ final class Renderer {
         updateTone(frames: frames)
 
         // Work on local copies (fast, no exclusivity checks in the loop).
-        var b = bass, m = mid, t = treble
+        var b = bass, lm = lowMid, m = mid, hm = highMid, t = treble
         var gl = gainL, gr = gainR
         let k = gainSmoothing
         let secondInput = inStride > 1 ? 1 : 0
@@ -259,7 +272,9 @@ final class Renderer {
             peak = max(peak, abs(inL), abs(inR))
             var l = Double(inL), r = Double(inR)
             b.process(&l, &r)
+            lm.process(&l, &r)
             m.process(&l, &r)
+            hm.process(&l, &r)
             t.process(&l, &r)
             gl += (targetL - gl) * k
             gr += (targetR - gr) * k
@@ -273,10 +288,10 @@ final class Renderer {
             }
         }
 
-        if !(b.isHealthy && m.isHealthy && t.isHealthy) {
-            b.reset(); m.reset(); t.reset()
+        if !(b.isHealthy && lm.isHealthy && m.isHealthy && hm.isHealthy && t.isHealthy) {
+            b.reset(); lm.reset(); m.reset(); hm.reset(); t.reset()
         }
-        bass = b; mid = m; treble = t
+        bass = b; lowMid = lm; mid = m; highMid = hm; treble = t
         gainL = gl; gainR = gr
         let previous = knobs[SharedParams.level]
         knobs[SharedParams.level] = peak.isFinite ? max(peak, previous * 0.85) : 0
@@ -289,8 +304,14 @@ final class Renderer {
         if Self.approach(&bassDB, Self.clampDB(knobs[SharedParams.bass]), k) {
             bass.c = Tone.lowShelf(hz: Tone.bassHz, gainDB: bassDB, sampleRate: sampleRate)
         }
+        if Self.approach(&lowMidDB, Self.clampDB(knobs[SharedParams.lowMid]), k) {
+            lowMid.c = Tone.bell(hz: Tone.lowMidHz, q: Tone.detailQ, gainDB: lowMidDB, sampleRate: sampleRate)
+        }
         if Self.approach(&midDB, Self.clampDB(knobs[SharedParams.mid]), k) {
             mid.c = Tone.bell(hz: Tone.midHz, q: Tone.midQ, gainDB: midDB, sampleRate: sampleRate)
+        }
+        if Self.approach(&highMidDB, Self.clampDB(knobs[SharedParams.highMid]), k) {
+            highMid.c = Tone.bell(hz: Tone.highMidHz, q: Tone.detailQ, gainDB: highMidDB, sampleRate: sampleRate)
         }
         if Self.approach(&trebleDB, Self.clampDB(knobs[SharedParams.treble]), k) {
             treble.c = Tone.highShelf(hz: Tone.trebleHz, gainDB: trebleDB, sampleRate: sampleRate)

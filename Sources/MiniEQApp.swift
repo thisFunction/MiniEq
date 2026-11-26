@@ -49,6 +49,9 @@ final class AppModel: ObservableObject {
     @Published var bass: Double { didSet { knobsChanged() } }
     @Published var mid: Double { didSet { knobsChanged() } }
     @Published var treble: Double { didSet { knobsChanged() } }
+    // Fine-tuning bands set only by dragging the tone curve (no knobs).
+    @Published var lowMid: Double { didSet { knobsChanged() } }
+    @Published var highMid: Double { didSet { knobsChanged() } }
     @Published private(set) var status: EngineStatus = .starting
 
     let engine = AudioEngine()
@@ -63,6 +66,8 @@ final class AppModel: ObservableObject {
         bass = saved("bass", 0, -Tone.maxDB...Tone.maxDB)
         mid = saved("mid", 0, -Tone.maxDB...Tone.maxDB)
         treble = saved("treble", 0, -Tone.maxDB...Tone.maxDB)
+        lowMid = saved("lowMid", 0, -Tone.maxDB...Tone.maxDB)
+        highMid = saved("highMid", 0, -Tone.maxDB...Tone.maxDB)
         engine.onStatus = { [weak self] status in
             DispatchQueue.main.async { self?.status = status }
         }
@@ -116,10 +121,13 @@ final class AppModel: ObservableObject {
         defaults.set(bass, forKey: "bass")
         defaults.set(mid, forKey: "mid")
         defaults.set(treble, forKey: "treble")
+        defaults.set(lowMid, forKey: "lowMid")
+        defaults.set(highMid, forKey: "highMid")
     }
 
     private func pushKnobsToEngine() {
-        engine.setKnobs(volume: volume, balance: balance, bass: bass, mid: mid, treble: treble)
+        engine.setKnobs(volume: volume, balance: balance, bass: bass, lowMid: lowMid, mid: mid,
+                        highMid: highMid, treble: treble)
     }
 }
 

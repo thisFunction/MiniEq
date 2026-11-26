@@ -21,10 +21,11 @@ struct ContentView: View {
                 KnobView(spec: .mid, value: $model.mid)
                 KnobView(spec: .treble, value: $model.treble)
             }
-            ToneCurveView(bass: model.bass, mid: model.mid, treble: model.treble)
+            ToneCurveView(bass: $model.bass, lowMid: $model.lowMid, mid: $model.mid,
+                          highMid: $model.highMid, treble: $model.treble)
                 .padding(.vertical, 6)
-                .padding(.trailing, 4)
                 .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
             Divider()
             footer
         }
