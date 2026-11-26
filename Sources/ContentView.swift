@@ -75,7 +75,7 @@ struct ContentView: View {
             Button("Reset") { model.resetToNeutral() }
                 .controlSize(.small)
                 .disabled(model.isNeutral)
-                .help("Set Volume to 100%, Balance to center, and every tone band to 0 dB")
+                .help("Set Volume to 80%, Balance to center, and every tone band to 0 dB")
             Button("Quit") { NSApp.terminate(nil) }
                 .controlSize(.small)
         }

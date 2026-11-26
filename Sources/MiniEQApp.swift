@@ -98,16 +98,20 @@ final class AppModel: ObservableObject {
         engine.shutdown()
     }
 
-    /// True when every knob and curve point is at its neutral setting (the sound is untouched).
+    /// Where the Reset button puts the Volume knob.
+    static let resetVolume = 0.8
+
+    /// True when everything is already at the Reset settings.
     var isNeutral: Bool {
-        volume == 1 && balance == 0 && bass == 0 && lowMid == 0 && mid == 0 && highMid == 0 && treble == 0
+        volume == AppModel.resetVolume && balance == 0 && bass == 0 && lowMid == 0 && mid == 0
+            && highMid == 0 && treble == 0
     }
 
-    /// Back to neutral: Volume 100 %, Balance centered, every tone band at 0 dB.
+    /// Reset: Volume 80 %, Balance centered, every tone band at 0 dB.
     /// (The audio glides to the new settings, so there's no click.)
     func resetToNeutral() {
         withAnimation(.easeOut(duration: 0.25)) {
-            volume = 1
+            volume = AppModel.resetVolume
             balance = 0
             bass = 0
             lowMid = 0
