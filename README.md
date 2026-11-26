@@ -13,6 +13,7 @@ A tiny menu-bar equalizer for everything your Mac plays: **Volume, Balance, Bass
 - **Fine-tune on the tone curve:** drag the line up or down near any of its five points: Bass, Low mid, Mid, High mid and Treble. Low mid and High mid have no knobs; they live only on the curve. Double-click near a point to reset it.
 - The **menu bar icon** shows the current Volume.
 - **Reset** (next to Quit) sets Volume to 80%, Balance to center, and every tone band to 0 dB.
+- **Keyboard volume keys** (up, down, mute) turn MiniEQ's Volume once you allow MiniEQ in System Settings → Privacy & Security → Accessibility. Hold Option+Shift for finer steps; Option + a volume key still opens Sound settings. MiniEQ only watches those keys, and hands them back to macOS whenever it isn't processing sound.
 - **Volume** is MiniEQ's own volume layer, on top of your Mac's normal volume. It also works on HDMI monitors and TVs where the Mac's volume keys don't.
 - The **green dot** at the bottom means sound is passing through MiniEQ.
 - **Quit** turns the effect off. Your Mac's sound goes back to normal right away.

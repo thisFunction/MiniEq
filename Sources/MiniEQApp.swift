@@ -53,8 +53,13 @@ final class AppModel: ObservableObject {
     @Published var lowMid: Double { didSet { knobsChanged() } }
     @Published var highMid: Double { didSet { knobsChanged() } }
     @Published private(set) var status: EngineStatus = .starting
+    /// True once the keyboard's volume keys control MiniEQ (needs the Accessibility permission).
+    @Published private(set) var volumeKeysEnabled = false
 
     let engine = AudioEngine()
+    private let volumeKeys = VolumeKeys()
+    private let volumeHUD = VolumeHUD()
+    private var volumeBeforeMute: Double?
 
     init() {
         func saved(_ key: String, _ fallback: Double, _ range: ClosedRange<Double>) -> Double {
@@ -75,6 +80,7 @@ final class AppModel: ObservableObject {
     }
 
     func launch() {
+        setUpVolumeKeys()
         let permission = CapturePermission.current()
         let macOS = ProcessInfo.processInfo.operatingSystemVersionString
         Diagnostics.log("MiniEQ started (macOS \(macOS)); system audio permission: \(permission)")
@@ -118,6 +124,53 @@ final class AppModel: ObservableObject {
             mid = 0
             highMid = 0
             treble = 0
+        }
+    }
+
+    // MARK: Keyboard volume keys
+
+    private func setUpVolumeKeys() {
+        volumeKeys.onKey = { [weak self] key, fine in self?.volumeKeyPressed(key, fine: fine) }
+        // Only take over the keys while MiniEQ is actually processing sound.
+        volumeKeys.shouldHandle = { [weak self] in
+            guard let self else { return false }
+            if case .running = self.status { return true }
+            return false
+        }
+        volumeKeys.onEnabled = { [weak self] in self?.volumeKeysEnabled = true }
+        // Show the macOS permission prompt once; after that, the keyboard button in the panel helps.
+        let askedBefore = UserDefaults.standard.bool(forKey: "askedForVolumeKeys")
+        volumeKeys.start(prompt: !askedBefore)
+        UserDefaults.standard.set(true, forKey: "askedForVolumeKeys")
+    }
+
+    /// 16 steps per key press like macOS (⌥⇧ for 64 finer steps). Mute remembers the level, and
+    /// volume-up while muted picks up from there.
+    private func volumeKeyPressed(_ key: VolumeKeys.Key, fine: Bool) {
+        let step = fine ? 1.0 / 64 : 1.0 / 16
+        switch key {
+        case .mute:
+            if volume > 0 {
+                volumeBeforeMute = volume
+                volume = 0
+            } else {
+                volume = volumeBeforeMute ?? AppModel.resetVolume
+                volumeBeforeMute = nil
+            }
+        case .up:
+            let start = (volume == 0 ? volumeBeforeMute : nil) ?? volume
+            volumeBeforeMute = nil
+            volume = min(1, ((start / step).rounded() + 1) * step)
+        case .down:
+            volumeBeforeMute = nil
+            volume = max(0, ((volume / step).rounded() - 1) * step)
+        }
+        volumeHUD.show(volume: volume)
+    }
+
+    func openAccessibilitySettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+            NSWorkspace.shared.open(url)
         }
     }
 

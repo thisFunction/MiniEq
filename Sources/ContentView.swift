@@ -93,6 +93,13 @@ struct ContentView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 8)
+            if !model.volumeKeysEnabled {
+                Button { model.openAccessibilitySettings() } label: {
+                    Image(systemName: "keyboard")
+                }
+                .buttonStyle(.borderless)
+                .help("To use your keyboard's volume keys with MiniEQ, turn on MiniEQ in Privacy & Security → Accessibility")
+            }
             Button("Reset") { model.resetToNeutral() }
                 .controlSize(.small)
                 .disabled(model.isNeutral)
