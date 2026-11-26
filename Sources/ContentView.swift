@@ -72,6 +72,10 @@ struct ContentView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 8)
+            Button("Reset") { model.resetToNeutral() }
+                .controlSize(.small)
+                .disabled(model.isNeutral)
+                .help("Set Volume to 100%, Balance to center, and every tone band to 0 dB")
             Button("Quit") { NSApp.terminate(nil) }
                 .controlSize(.small)
         }

@@ -98,6 +98,25 @@ final class AppModel: ObservableObject {
         engine.shutdown()
     }
 
+    /// True when every knob and curve point is at its neutral setting (the sound is untouched).
+    var isNeutral: Bool {
+        volume == 1 && balance == 0 && bass == 0 && lowMid == 0 && mid == 0 && highMid == 0 && treble == 0
+    }
+
+    /// Back to neutral: Volume 100 %, Balance centered, every tone band at 0 dB.
+    /// (The audio glides to the new settings, so there's no click.)
+    func resetToNeutral() {
+        withAnimation(.easeOut(duration: 0.25)) {
+            volume = 1
+            balance = 0
+            bass = 0
+            lowMid = 0
+            mid = 0
+            highMid = 0
+            treble = 0
+        }
+    }
+
     func openPrivacySettings() {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
             NSWorkspace.shared.open(url)

@@ -6,7 +6,8 @@ import AppKit
 ///
 /// It's also a control with five drag points — Bass, Low mid, Mid, High mid and Treble.
 /// Drag the line up or down to change the band whose point is nearest the pointer (hold ⌥ for
-/// fine moves), scroll over it, or double-click to reset that band. Bass, Mid and Treble also
+/// fine moves), scroll over it, or double-click to reset that band. 0 dB is magnetic: a point
+/// dragged or scrolled through neutral stops there for a moment. Bass, Mid and Treble also
 /// have knobs, which move along; Low mid and High mid live only here.
 struct ToneCurveView: View {
     @Binding var bass: Double
@@ -17,7 +18,10 @@ struct ToneCurveView: View {
 
     @State private var hovered: Band?
     @State private var dragging: Band?
-    @State private var valueAtDragStart = 0.0
+    @State private var rawAtDragStart = 0.0      // drag position in "notch space" (see snap)
+
+    /// How far (in points of pointer travel) a dragged point stays stuck at 0 dB.
+    private static let notchPoints = 10.0
 
     enum Band: CaseIterable {
         case bass, lowMid, mid, highMid, treble     // left to right
@@ -111,10 +115,31 @@ struct ToneCurveView: View {
         }
     }
 
-    private func set(_ band: Band, to proposed: Double, snapToFlat: Bool) {
-        var v = min(max(proposed, -Tone.maxDB), Tone.maxDB)
-        // Same gentle detent at 0 dB as the knobs, so "flat" is easy to find.
-        if snapToFlat && abs(v) < 2 * Tone.maxDB * 0.02 { v = 0 }
+    /// dB per point of vertical pointer travel: one point of drag = one point on the graph.
+    private static func dbPerPoint(_ size: CGSize) -> Double {
+        2 * rangeDB / Double(plot(in: size).height)
+    }
+
+    /// The magnetic notch at 0 dB. While dragging, the pointer has to travel through a small
+    /// dead zone (`notch` dB wide) before the value leaves 0. `snap` turns a drag position into
+    /// a value; `unsnap` is its inverse, so grabbing a point never makes it jump.
+    private static func snap(_ raw: Double, notch: Double) -> Double {
+        if abs(raw) <= notch / 2 { return 0 }
+        return raw > 0 ? raw - notch / 2 : raw + notch / 2
+    }
+
+    private static func unsnap(_ value: Double, notch: Double) -> Double {
+        if value == 0 { return 0 }
+        return value > 0 ? value + notch / 2 : value - notch / 2
+    }
+
+    private func set(_ band: Band, to proposed: Double) {
+        let v = min(max(proposed, -Tone.maxDB), Tone.maxDB)
+        guard v != value(of: band) else { return }
+        if v == 0 {
+            // A light tap on Force Touch trackpads when a point lands on neutral.
+            NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
+        }
         switch band {
         case .bass: if v != bass { bass = v }
         case .lowMid: if v != lowMid { lowMid = v }
@@ -154,7 +179,10 @@ struct ToneCurveView: View {
             var zeroLine = Path()
             zeroLine.move(to: CGPoint(x: plot.minX, y: Self.y(0, plot)))
             zeroLine.addLine(to: CGPoint(x: plot.maxX, y: Self.y(0, plot)))
-            context.stroke(zeroLine, with: .color(Color.primary.opacity(0.2)), lineWidth: 1)
+            // The 0 dB line lights up while the point you're dragging sits on it.
+            let onNeutral = dragging.map { value(of: $0) == 0 } ?? false
+            context.stroke(zeroLine, with: .color(onNeutral ? Color.accentColor.opacity(0.75) : Color.primary.opacity(0.2)),
+                           lineWidth: onNeutral ? 1.5 : 1)
 
             // Frequency markers
             for (hz, text) in [(100.0, "100"), (1_000.0, "1k"), (10_000.0, "10k")] {
@@ -205,23 +233,27 @@ struct ToneCurveView: View {
                 onBegin: { point, size in
                     let band = Self.band(at: point, in: size)
                     dragging = band
-                    valueAtDragStart = value(of: band)
+                    let notch = Self.notchPoints * Self.dbPerPoint(size)
+                    rawAtDragStart = Self.unsnap(value(of: band), notch: notch)
                 },
                 onDrag: { travel, size in
                     guard let band = dragging else { return }
-                    // One point of drag = one point on the graph's dB scale.
-                    let dbPerPoint = 2 * Self.rangeDB / Double(Self.plot(in: size).height)
-                    set(band, to: valueAtDragStart + Double(travel) * dbPerPoint, snapToFlat: true)
+                    let perPoint = Self.dbPerPoint(size)
+                    let raw = rawAtDragStart + Double(travel) * perPoint
+                    set(band, to: Self.snap(raw, notch: Self.notchPoints * perPoint))
                 },
                 onEnd: {
                     dragging = nil
                 },
                 onScroll: { point, delta, size in
                     let band = Self.band(at: point, in: size)
-                    set(band, to: value(of: band) + Double(delta) * 2 * Tone.maxDB / 300, snapToFlat: false)
+                    let old = value(of: band)
+                    var new = old + Double(delta) * 2 * Tone.maxDB / 300
+                    if (old > 0 && new < 0) || (old < 0 && new > 0) { new = 0 }   // stop at neutral on the way through
+                    set(band, to: new)
                 },
                 onReset: { point, size in
-                    set(Self.band(at: point, in: size), to: 0, snapToFlat: false)
+                    set(Self.band(at: point, in: size), to: 0)
                 }
             )
         )
