@@ -56,9 +56,10 @@ struct ToneCurveView: View {
 
     // MARK: Geometry (shared by drawing and mouse handling)
 
-    /// The graph spans the full width, so the handles can be spaced evenly edge to edge.
+    /// The graph area: a dB scale sits in the gutter on the left and frequency markers below.
+    /// The handles are spaced evenly from this area's left edge to its right edge.
     private static func plot(in size: CGSize) -> CGRect {
-        CGRect(x: 0, y: 5, width: max(1, size.width), height: max(1, size.height - 19))
+        CGRect(x: 26, y: 6, width: max(1, size.width - 32), height: max(1, size.height - 24))
     }
 
     /// Frequencies pinned to evenly spaced spots across the graph: the two edges and the five
@@ -175,19 +176,25 @@ struct ToneCurveView: View {
                 grid.move(to: CGPoint(x: plot.minX, y: Self.y(db, plot)))
                 grid.addLine(to: CGPoint(x: plot.maxX, y: Self.y(db, plot)))
             }
-            context.stroke(grid, with: .color(Color.primary.opacity(0.07)), lineWidth: 1)
+            context.stroke(grid, with: .color(Color.primary.opacity(0.08)), lineWidth: 1)
             var zeroLine = Path()
             zeroLine.move(to: CGPoint(x: plot.minX, y: Self.y(0, plot)))
             zeroLine.addLine(to: CGPoint(x: plot.maxX, y: Self.y(0, plot)))
             // The 0 dB line lights up while the point you're dragging sits on it.
             let onNeutral = dragging.map { value(of: $0) == 0 } ?? false
-            context.stroke(zeroLine, with: .color(onNeutral ? Color.accentColor.opacity(0.75) : Color.primary.opacity(0.2)),
+            context.stroke(zeroLine, with: .color(onNeutral ? Color.miniAccent.opacity(0.8) : Color.primary.opacity(0.2)),
                            lineWidth: onNeutral ? 1.5 : 1)
 
-            // Frequency markers
+            // dB scale on the left, frequency markers along the bottom
+            let labelColor = Color(nsColor: .tertiaryLabelColor)
+            for db in [-12, -6, 0, 6, 12] {
+                let text = db > 0 ? "+\(db)" : "\(db)"
+                context.draw(Text(text).font(.system(size: 9)).foregroundColor(labelColor),
+                             at: CGPoint(x: plot.minX - 5, y: Self.y(Double(db), plot)), anchor: .trailing)
+            }
             for (hz, text) in [(100.0, "100"), (1_000.0, "1k"), (10_000.0, "10k")] {
-                context.draw(Text(text).font(.system(size: 8)).foregroundColor(.secondary),
-                             at: CGPoint(x: Self.x(hz, plot), y: plot.maxY + 3), anchor: .top)
+                context.draw(Text(text).font(.system(size: 9)).foregroundColor(labelColor),
+                             at: CGPoint(x: Self.x(hz, plot), y: plot.maxY + 4), anchor: .top)
             }
 
             // The curve, with a soft fill back to 0 dB
@@ -203,8 +210,11 @@ struct ToneCurveView: View {
             area.addLine(to: CGPoint(x: plot.maxX, y: Self.y(0, plot)))
             area.addLine(to: CGPoint(x: plot.minX, y: Self.y(0, plot)))
             area.closeSubpath()
-            context.fill(area, with: .color(Color.accentColor.opacity(0.16)))
-            context.stroke(curve, with: .color(Color.accentColor), style: StrokeStyle(lineWidth: 1.6, lineJoin: .round))
+            let fillBounds = area.boundingRect
+            context.fill(area, with: .linearGradient(
+                Gradient(colors: [Color.miniAccent.opacity(0.32), Color.miniAccent.opacity(0.02)]),
+                startPoint: CGPoint(x: 0, y: fillBounds.minY), endPoint: CGPoint(x: 0, y: fillBounds.maxY)))
+            context.stroke(curve, with: .color(Color.miniAccent), style: StrokeStyle(lineWidth: 2, lineJoin: .round))
 
             // Handles: one per band; the one under the pointer (or being dragged) grows.
             for band in Band.allCases {
@@ -214,17 +224,26 @@ struct ToneCurveView: View {
                     var guide = Path()
                     guide.move(to: CGPoint(x: center.x, y: plot.minY))
                     guide.addLine(to: CGPoint(x: center.x, y: plot.maxY))
-                    context.stroke(guide, with: .color(Color.accentColor.opacity(0.35)),
+                    context.stroke(guide, with: .color(Color.miniAccent.opacity(0.35)),
                                    style: StrokeStyle(lineWidth: 1, dash: [2, 2]))
-                    let halo = CGRect(x: center.x - 6.5, y: center.y - 6.5, width: 13, height: 13)
-                    context.fill(Path(ellipseIn: halo), with: .color(Color.accentColor.opacity(0.22)))
                 }
-                let r: CGFloat = isFocus ? 4 : 2.5
+                let r: CGFloat = isFocus ? 4.2 : 3.2
+                // A thin gap around each dot (cut out of the line), like the website.
+                var cutout = context
+                cutout.blendMode = .clear
+                let ringRadius = r + 1.5
+                cutout.fill(Path(ellipseIn: CGRect(x: center.x - ringRadius, y: center.y - ringRadius,
+                                                   width: 2 * ringRadius, height: 2 * ringRadius)),
+                            with: .color(.black))
+                if isFocus {
+                    let halo = CGRect(x: center.x - 7, y: center.y - 7, width: 14, height: 14)
+                    context.fill(Path(ellipseIn: halo), with: .color(Color.miniAccent.opacity(0.22)))
+                }
                 context.fill(Path(ellipseIn: CGRect(x: center.x - r, y: center.y - r, width: 2 * r, height: 2 * r)),
-                             with: .color(Color.accentColor))
+                             with: .color(Color.miniAccent))
             }
         }
-        .frame(height: 92)
+        .frame(height: 122)
         .overlay(
             CurveMouseArea(
                 onHover: { point, size in

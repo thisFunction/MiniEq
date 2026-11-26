@@ -21,11 +21,7 @@ struct ContentView: View {
                 KnobView(spec: .mid, value: $model.mid)
                 KnobView(spec: .treble, value: $model.treble)
             }
-            ToneCurveView(bass: $model.bass, lowMid: $model.lowMid, mid: $model.mid,
-                          highMid: $model.highMid, treble: $model.treble)
-                .padding(.vertical, 6)
-                .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+            toneCurveCard
             Divider()
             footer
         }
@@ -34,6 +30,30 @@ struct ContentView: View {
         .padding(.top, 16)
         .padding(.bottom, 10)
         .onReceive(meter) { _ in level = model.engine.level }
+    }
+
+    /// The tone curve in its own card, with a header — same look as the website.
+    private var toneCurveCard: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("TONE CURVE")
+                    .font(.system(size: 11, weight: .semibold))
+                    .kerning(0.3)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text("Volume \(KnobSpec.volume.format(model.volume)) · \(KnobSpec.balance.format(model.balance))")
+                    .font(.system(size: 11))
+                    .monospacedDigit()
+                    .foregroundStyle(.tertiary)
+            }
+            ToneCurveView(bass: $model.bass, lowMid: $model.lowMid, mid: $model.mid,
+                          highMid: $model.highMid, treble: $model.treble)
+        }
+        .padding(.horizontal, 12)
+        .padding(.top, 10)
+        .padding(.bottom, 8)
+        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.miniCard))
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.miniCardBorder, lineWidth: 1))
     }
 
     @ViewBuilder
@@ -47,6 +67,7 @@ struct ContentView: View {
                 Circle()
                     .fill(level > 0.0005 ? Color.green : Color.secondary.opacity(0.35))
                     .frame(width: 7, height: 7)
+                    .shadow(color: level > 0.0005 ? Color.green.opacity(0.8) : .clear, radius: 3)
                     .help(level > 0.0005 ? "Sound is flowing through MiniEQ" : "Nothing is playing")
                 Text(device)
                     .lineLimit(1)

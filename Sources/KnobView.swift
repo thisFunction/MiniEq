@@ -102,7 +102,7 @@ struct KnobFace: View {
                 if end - start > 0.0005 {
                     Circle()
                         .trim(from: start, to: end)
-                        .stroke(Color.accentColor, style: StrokeStyle(lineWidth: line, lineCap: .round))
+                        .stroke(Color.miniAccent, style: StrokeStyle(lineWidth: line, lineCap: .round))
                         .rotationEffect(.degrees(90))
                 }
                 Circle()
@@ -123,6 +123,19 @@ struct KnobFace: View {
 }
 
 extension Color {
+    /// MiniEQ's orange — the same color as the app icon and the website.
+    static let miniAccent = adaptive(dark: NSColor(srgbRed: 1.0, green: 0.478, blue: 0.239, alpha: 1),     // #ff7a3d
+                                     light: NSColor(srgbRed: 0.949, green: 0.380, blue: 0.122, alpha: 1)) // #f2611f
+    /// The tone-curve card behind the graph, and its hairline border.
+    static let miniCard = adaptive(dark: NSColor(white: 1, alpha: 0.035), light: NSColor(white: 1, alpha: 1))
+    static let miniCardBorder = adaptive(dark: NSColor(white: 1, alpha: 0.08), light: NSColor(white: 0, alpha: 0.08))
+
+    private static func adaptive(dark: NSColor, light: NSColor) -> Color {
+        Color(nsColor: NSColor(name: nil) { appearance in
+            appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? dark : light
+        })
+    }
+
     static let knobCapTop = Color(nsColor: NSColor(name: nil) { appearance in
         appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
             ? NSColor(white: 0.36, alpha: 1) : NSColor(white: 1.0, alpha: 1)
